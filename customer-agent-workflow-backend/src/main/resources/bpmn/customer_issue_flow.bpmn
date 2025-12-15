@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_customer_issue_flow" targetNamespace="http://example.com/csworkflow" exporter="Camunda Modeler" exporterVersion="5.42.0">
+  <bpmn:process id="customer_issue_flow" name="Customer Issue Flow" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="lookupOrderTask" name="Lookup Order" camunda:delegateExpression="#{lookupOrderDelegate}">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="lookupOrderTask" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="lookupOrderTask" targetRef="Gateway_OrderFound" />
+    <bpmn:exclusiveGateway id="Gateway_OrderFound" name="Order Found?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderFound_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_OrderFound_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_OrderNotFound" name="Order Not Found">
+      <bpmn:incoming>Flow_OrderFound_No</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_OrderFound_No" sourceRef="Gateway_OrderFound" targetRef="EndEvent_OrderNotFound">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${orderFound == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="selectIssueTypeTask" name="Select Issue Type" camunda:candidateGroups="AGENTS">
+      <bpmn:incoming>Flow_OrderFound_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_SelectType_To_Details</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_OrderFound_Yes" sourceRef="Gateway_OrderFound" targetRef="selectIssueTypeTask">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${orderFound == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="enterIssueDetailsTask" name="Enter Issue Details" camunda:candidateGroups="AGENTS">
+      <bpmn:incoming>Flow_SelectType_To_Details</bpmn:incoming>
+      <bpmn:outgoing>Flow_Details_To_ParallelSplit</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_SelectType_To_Details" sourceRef="selectIssueTypeTask" targetRef="enterIssueDetailsTask" />
+    <bpmn:sequenceFlow id="Flow_Details_To_ParallelSplit" sourceRef="enterIssueDetailsTask" targetRef="Gateway_ParallelSplit" />
+    <bpmn:parallelGateway id="Gateway_ParallelSplit" name="Persist + Notify (Parallel)">
+      <bpmn:incoming>Flow_Details_To_ParallelSplit</bpmn:incoming>
+      <bpmn:outgoing>Flow_To_Persist</bpmn:outgoing>
+      <bpmn:outgoing>Flow_To_Notify</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:serviceTask id="persistTicketTask" name="Persist Ticket" camunda:delegateExpression="#{persistTicketDelegate}">
+      <bpmn:incoming>Flow_To_Persist</bpmn:incoming>
+      <bpmn:outgoing>Flow_Persist_To_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="notifyCustomerTask" name="Notify Customer" camunda:delegateExpression="#{notifyCustomerDelegate}">
+      <bpmn:incoming>Flow_To_Notify</bpmn:incoming>
+      <bpmn:outgoing>Flow_Notify_To_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_To_Persist" sourceRef="Gateway_ParallelSplit" targetRef="persistTicketTask" />
+    <bpmn:sequenceFlow id="Flow_To_Notify" sourceRef="Gateway_ParallelSplit" targetRef="notifyCustomerTask" />
+    <bpmn:parallelGateway id="Gateway_ParallelJoin" name="Join">
+      <bpmn:incoming>Flow_Persist_To_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_Notify_To_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_Join_To_End</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_Persist_To_Join" sourceRef="persistTicketTask" targetRef="Gateway_ParallelJoin" />
+    <bpmn:sequenceFlow id="Flow_Notify_To_Join" sourceRef="notifyCustomerTask" targetRef="Gateway_ParallelJoin" />
+    <bpmn:endEvent id="EndEvent_Completed" name="Completed">
+      <bpmn:incoming>Flow_Join_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Join_To_End" sourceRef="Gateway_ParallelJoin" targetRef="EndEvent_Completed" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_customer_issue_flow">
+    <bpmndi:BPMNPlane id="BPMNPlane_customer_issue_flow" bpmnElement="customer_issue_flow">
+      <bpmndi:BPMNShape id="DI_StartEvent_1" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="120" y="260" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="126" y="296" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_lookupOrderTask" bpmnElement="lookupOrderTask">
+        <omgdc:Bounds x="210" y="240" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Gateway_OrderFound" bpmnElement="Gateway_OrderFound" isMarkerVisible="true">
+        <omgdc:Bounds x="380" y="255" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="371" y="305" width="69" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_selectIssueTypeTask" bpmnElement="selectIssueTypeTask">
+        <omgdc:Bounds x="500" y="240" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_enterIssueDetailsTask" bpmnElement="enterIssueDetailsTask">
+        <omgdc:Bounds x="700" y="240" width="170" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Gateway_ParallelSplit" bpmnElement="Gateway_ParallelSplit">
+        <omgdc:Bounds x="920" y="255" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="979.5" y="266" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Gateway_ParallelJoin" bpmnElement="Gateway_ParallelJoin">
+        <omgdc:Bounds x="1210" y="255" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1178.5" y="273" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_EndEvent_Completed" bpmnElement="EndEvent_Completed">
+        <omgdc:Bounds x="1330" y="260" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1321" y="296" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_EndEvent_OrderNotFound" bpmnElement="EndEvent_OrderNotFound">
+        <omgdc:Bounds x="387" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="363" y="78" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_persistTicketTask" bpmnElement="persistTicketTask">
+        <omgdc:Bounds x="1000" y="100" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_notifyCustomerTask" bpmnElement="notifyCustomerTask">
+        <omgdc:Bounds x="1000" y="430" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DI_Flow_1" bpmnElement="Flow_1">
+        <omgdi:waypoint x="156" y="278" />
+        <omgdi:waypoint x="210" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_2" bpmnElement="Flow_2">
+        <omgdi:waypoint x="330" y="280" />
+        <omgdi:waypoint x="380" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_OrderFound_No" bpmnElement="Flow_OrderFound_No">
+        <omgdi:waypoint x="405" y="255" />
+        <omgdi:waypoint x="405" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_OrderFound_Yes" bpmnElement="Flow_OrderFound_Yes">
+        <omgdi:waypoint x="430" y="280" />
+        <omgdi:waypoint x="500" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_SelectType_To_Details" bpmnElement="Flow_SelectType_To_Details">
+        <omgdi:waypoint x="650" y="280" />
+        <omgdi:waypoint x="700" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_Details_To_ParallelSplit" bpmnElement="Flow_Details_To_ParallelSplit">
+        <omgdi:waypoint x="870" y="280" />
+        <omgdi:waypoint x="920" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_To_Persist" bpmnElement="Flow_To_Persist">
+        <omgdi:waypoint x="945" y="255" />
+        <omgdi:waypoint x="945" y="140" />
+        <omgdi:waypoint x="1000" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_To_Notify" bpmnElement="Flow_To_Notify">
+        <omgdi:waypoint x="945" y="305" />
+        <omgdi:waypoint x="945" y="470" />
+        <omgdi:waypoint x="1000" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_Persist_To_Join" bpmnElement="Flow_Persist_To_Join">
+        <omgdi:waypoint x="1140" y="140" />
+        <omgdi:waypoint x="1235" y="140" />
+        <omgdi:waypoint x="1235" y="255" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_Notify_To_Join" bpmnElement="Flow_Notify_To_Join">
+        <omgdi:waypoint x="1140" y="470" />
+        <omgdi:waypoint x="1235" y="470" />
+        <omgdi:waypoint x="1235" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_Flow_Join_To_End" bpmnElement="Flow_Join_To_End">
+        <omgdi:waypoint x="1260" y="280" />
+        <omgdi:waypoint x="1330" y="278" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

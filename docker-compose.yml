@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+  cs-workflow-db:
+    image: postgres:16-alpine
+    container_name: cs-workflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cs_workflow
+      POSTGRES_USER: cs_agent
+      POSTGRES_PASSWORD: cs_agent
+    ports:
+      - "5432:5432"
+    volumes:
+      - cs_workflow_db_data:/var/lib/postgresql/data
+    networks:
+      - cs-workflow-net
+
+  cs-workflow-kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: cs-workflow-kafka
+    restart: unless-stopped
+    depends_on:
+      - cs-workflow-zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: cs-workflow-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://cs-workflow-kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - cs-workflow-net
+
+  cs-workflow-zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: cs-workflow-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - cs-workflow-net
+
+  cs-workflow-app:
+    build: .
+    container_name: cs-workflow-app
+    restart: unless-stopped
+    depends_on:
+      - cs-workflow-db
+      - cs-workflow-kafka
+    environment:
+      # Spring datasource config
+      SPRING_DATASOURCE_URL: jdbc:postgresql://cs-workflow-db:5432/cs_workflow
+      SPRING_DATASOURCE_USERNAME: cs_agent
+      SPRING_DATASOURCE_PASSWORD: cs_agent
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+
+      # Kafka
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: cs-workflow-kafka:29092
+
+      # Camunda admin user (can also be set in application.yml)
+      CAMUNDA_BPM_ADMIN_USER_ID: demo
+      CAMUNDA_BPM_ADMIN_USER_PASSWORD: demo
+
+      # Optional JVM tuning
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports:
+      - "8080:8080"
+    networks:
+      - cs-workflow-net
+
+networks:
+  cs-workflow-net:
+
+volumes:
+  cs_workflow_db_data:

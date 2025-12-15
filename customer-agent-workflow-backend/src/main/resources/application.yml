@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cs_workflow
+    username: cs_agent
+    password: cs_agent
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+
+camunda:
+  bpm:
+    admin-user:
+      id: demo
+      password: demo
+    filter:
+      create: All tasks
+    history-level: FULL
+
+app:
+  api:
+    base-path: /api/v1
+  cors:
+    allowed-origins: "http://localhost:3000"

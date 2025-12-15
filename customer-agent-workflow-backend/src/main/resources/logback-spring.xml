@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+    <!-- Spring Boot will pick this up automatically when named logback-spring.xml -->
+
+    <!-- Define a standard pattern including MDC keys -->
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{processInstanceId} %X{orderId} %X{ticketId} %X{agentId}] %logger{36} - %msg%n" />
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Reduce noise from frameworks -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.hibernate.SQL" level="DEBUG"/>        <!-- SQL if you want to see queries -->
+    <logger name="org.hibernate.type.descriptor.sql" level="TRACE"/>
+    <logger name="org.camunda.bpm.engine" level="INFO"/>
+
+    <!-- Your app package can be DEBUG in dev -->
+    <logger name="io.bly.customer.agent" level="DEBUG"/>
+</configuration>

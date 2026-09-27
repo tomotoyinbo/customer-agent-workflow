@@ -1,0 +1,3 @@
+[submodule ".agents/skills/bly-ai-skills"]
+	path = .agents/skills/bly-ai-skills
+	url = git@github.com:bly-platform/bly-ai-skills.git

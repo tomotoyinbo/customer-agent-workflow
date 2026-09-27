@@ -51,3 +51,24 @@ src/main/java/com/example/csworkflow/
 │  └─ ticket/                         # Ticket entity, repo, service
 ├─ messaging/                         # Kafka events & producers
 └─ util/                              # Logging / MDC helpers (optional)
+
+## AI Skills & Agent Setup
+
+This repository includes shared Bly AI skills and workflows via the [`bly-ai-skills`](https://github.com/bly-platform/bly-ai-skills) Git Submodule located at `.agents/skills/bly-ai-skills`.
+
+### 1. One-Time Developer Environment Setup
+To ensure Git automatically clones and updates submodules across all Bly projects (including inside IntelliJ IDEA, Cursor, Claude Code, and Terminal), run:
+
+```bash
+git config --global submodule.recurse true
+```
+
+### 2. Submodule Initialization for Existing Clones
+If you previously cloned this repository without recursive submodules, initialize them by running:
+
+```bash
+git submodule update --init --recursive
+```
+
+### 3. Usage with AI Coding Assistants
+AI tools (Google Antigravity, Gemini CLI, Claude Code, Cursor, OpenAI Codex) automatically discover skills such as `monday-sync` from `.agents/skills/bly-ai-skills`.
